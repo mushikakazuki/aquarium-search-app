@@ -6,10 +6,216 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+enum Prefecture {
+  Hokkaido
+  Aomori
+  Iwate
+  Miyagi
+  Akita
+  Yamagata
+  Fukushima
+  Ibaraki
+  Tochigi
+  Gunma
+  Saitama
+  Chiba
+  Tokyo
+  Kanagawa
+  Niigata
+  Toyama
+  Ishikawa
+  Fukui
+  Yamanashi
+  Nagano
+  Gifu
+  Shizuoka
+  Aichi
+  Mie
+  Shiga
+  Kyoto
+  Osaka
+  Hyogo
+  Nara
+  Wakayama
+  Tottori
+  Shimane
+  Okayama
+  Hiroshima
+  Yamaguchi
+  Tokushima
+  Kagawa
+  Ehime
+  Kochi
+  Fukuoka
+  Saga
+  Nagasaki
+  Kumamoto
+  Oita
+  Miyazaki
+  Kagoshima
+  Okinawa
+}
+
+// 水族館
+model Aquarium {
+  id String @id @default(cuid())
+  name String
+  name_kana String?
+  prefectures Prefecture
+  address String
+  latitude Float
+  longitude Float
+  officialWebsiteURL String?
+  traveltime Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organisms   AquariumOrganism[]
+  fees        Fee[]
+  hours       OpeningHour[]
+  shows       Show[]
+  tags        AquariumTag[]
+  comments    Comment[]
+  accessInfos AccessInfo[]
+  images      Image[]
+  favorites   Favorite[]
+}
+
+// 代表生物
+model AquariumOrganism {
+  id         String   @id @default(cuid())
+  name       String
+  aquariumId String
+  aquarium Aquarium @relation(fields: [aquariumId], references: [id])
+}
+
+// 料金
+model Fee {
+  id         String   @id @default(uuid())
+  aquariumId String
+  aquarium   Aquarium @relation(fields: [aquariumId], references: [id])
+  category   String   // 一律/大人/中高生/…
+  price      Int
+  note       String?
+  updatedAt  DateTime @updatedAt
+}
+
+// 営業時間
+model OpeningHour {
+  id         String   @id @default(uuid())
+  aquariumId String
+  aquarium   Aquarium @relation(fields: [aquariumId], references: [id])
+  dayOfWeek  String   // 月〜日 / 祝
+  openTime   DateTime
+  closeTime  DateTime
+  note       String?
+  updatedAt  DateTime @updatedAt
+}
+
+// ショー
+model Show {
+  id         String   @id @default(uuid())
+  aquariumId String
+  aquarium   Aquarium @relation(fields: [aquariumId], references: [id])
+  name       String
+  duration   Int?
+  venue      String?
+  updatedAt  DateTime @updatedAt
+}
+
+// タグ
+model Tag {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // 特徴/設備/展示生物
+  slug      String
+  sortOrder Int
+  aquariums AquariumTag[]
+}
+
+// 中間（水族館_タグ）
+model AquariumTag {
+  id         String   @id @default(uuid())
+  aquariumId String
+  tagId      String
+  aquarium   Aquarium @relation(fields: [aquariumId], references: [id])
+  tag        Tag      @relation(fields: [tagId], references: [id])
+}
+
+// ユーザー
+model User {
+  id          String   @id @default(uuid())
+  anonId      String   // guest_id cookie 用
+  displayName String
+  email       String?  // パスワードレス用
+  trusted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // リレーション
+  comments    Comment[]
+  favorites   Favorite[]
+}
+
+// コメント
+model Comment {
+  id          String   @id @default(uuid())
+  aquariumId  String
+  userId      String
+  aquarium    Aquarium @relation(fields: [aquariumId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  rating      Int
+  body        String
+  status      String   // 保留/公開/非表示
+  likes       Int      @default(0)
+  dislikes    Int      @default(0)
+  reports     Int      @default(0)
+  editToken   String
+  ipHash      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// アクセス情報
+model AccessInfo {
+  id          String   @id @default(uuid())
+  aquariumId  String
+  aquarium    Aquarium @relation(fields: [aquariumId], references: [id])
+  stationName String
+  walkMinutes Int?
+  busRoutes   String?
+  parking     Int?
+  parkingFee  Int?
+  note        String?
+  updatedAt   DateTime @updatedAt
+}
+
+// 画像
+model Image {
+  id          String   @id @default(uuid())
+  aquariumId  String
+  aquarium    Aquarium @relation(fields: [aquariumId], references: [id])
+  url         String
+  credit      String?
+  sourceUrl   String?
+  license     String
+  altText     String?
+  sortOrder   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+// お気に入り
+model Favorite {
+  id         String   @id @default(uuid())
+  userId     String
+  aquariumId String
+  user       User     @relation(fields: [userId], references: [id])
+  aquarium   Aquarium @relation(fields: [aquariumId], references: [id])
+  createdAt  DateTime @default(now())
 }
